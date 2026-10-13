@@ -50,7 +50,7 @@ const SEED_WORKOUTS = {
 const SEED_FIELDS = [
   { name: 'משקל גוף', unit: 'ק״ג' },
   { name: 'חזה', unit: 'ס״מ' },
-  { name: 'מותניים', unit: 'ס״מ' },
+  { name: 'בטן', unit: 'ס״מ' },
   { name: 'ירכיים', unit: 'ס״מ' },
   { name: 'זרוע', unit: 'ס״מ' },
   { name: 'ירך', unit: 'ס״מ' },
@@ -59,7 +59,13 @@ const SEED_FIELDS = [
 export async function init() {
   try { await navigator.storage?.persist?.(); } catch {}
   const seeded = await get('meta', 'seeded');
-  if (seeded) return;
+  if (seeded) {
+    // migration: rename default field מותניים -> בטן
+    for (const f of await getAll('measurementFields')) {
+      if (f.name === 'מותניים') await put('measurementFields', { ...f, name: 'בטן' });
+    }
+    return;
+  }
   for (const id of ['A', 'B']) {
     await put('workouts', {
       id,
