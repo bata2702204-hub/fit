@@ -1,4 +1,4 @@
-const CACHE = 'fit-v4';
+const CACHE = 'fit-v5';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/db.js', 'js/util.js', 'js/chart.js',

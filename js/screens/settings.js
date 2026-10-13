@@ -1,4 +1,4 @@
-import { h, toast, confirmDialog, downloadJSON, todayISO, fmtDate } from '../util.js';
+import { h, toast, confirmDialog, downloadJSON, todayISO, fmtDate, mount } from '../util.js';
 import * as db from '../db.js';
 
 export async function settingsScreen(root) {
@@ -15,9 +15,22 @@ export async function settingsScreen(root) {
       h('h3', {}, w.name),
       ...w.exercises.map((e, i) => h('div', { class: 'edit-row' },
         h('span', { class: 'grow' }, e.name),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'הזז למעלה', onclick: () => move(w.exercises, i, -1) && save() }, '↑'),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'הזז למטה', onclick: () => move(w.exercises, i, 1) && save() }, '↓'),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: () => { const n = prompt('שם התרגיל:', e.name); if (n && n.trim()) { e.name = n.trim(); save(); } } }, '✎'),
+        h('button', { class: 'icon-btn', type: 'button', disabled: i === 0, 'aria-label': 'הזז למעלה', onclick: () => move(w.exercises, i, -1) && save() }, '↑'),
+        h('button', { class: 'icon-btn', type: 'button', disabled: i === w.exercises.length - 1, 'aria-label': 'הזז למטה', onclick: () => move(w.exercises, i, 1) && save() }, '↓'),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: async () => {
+          const n = prompt('שם התרגיל:', e.name);
+          if (!n || !n.trim() || n.trim() === e.name) return;
+          const old = e.name; e.name = n.trim();
+          if (await confirmDialog(`לעדכן את השם גם באימונים קודמים של ${w.name}, כדי שההיסטוריה של התרגיל תישמר?`)) {
+            for (const s of await db.getSessions()) {
+              if (s.workoutId !== w.id) continue;
+              let changed = false;
+              for (const x of s.exercises) if (x.name === old) { x.name = e.name; changed = true; }
+              if (changed) await db.put('sessions', s);
+            }
+          }
+          save();
+        } }, '✎'),
         h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': 'מחק', onclick: async () => { if (await confirmDialog(`למחוק את "${e.name}" מהאימון? ההיסטוריה נשמרת.`)) { w.exercises.splice(i, 1); save(); } } }, '✕'))),
       h('button', { class: 'btn', type: 'button', onclick: () => { const n = prompt('שם התרגיל החדש:'); if (n && n.trim()) { w.exercises.push({ id: db.uid(), name: n.trim() }); save(); } } }, '＋ הוסף תרגיל'));
   }
@@ -27,10 +40,10 @@ export async function settingsScreen(root) {
       const save = async () => { fields.forEach((x, k) => (x.order = k)); await Promise.all(fields.map((x) => db.put('measurementFields', x))); rerender(); };
       return h('div', { class: 'edit-row' },
         h('span', { class: 'grow' }, `${f.name} (${f.unit})`),
-        h('button', { class: 'icon-btn', type: 'button', onclick: () => move(fields, i, -1) && save() }, '↑'),
-        h('button', { class: 'icon-btn', type: 'button', onclick: () => move(fields, i, 1) && save() }, '↓'),
-        h('button', { class: 'icon-btn', type: 'button', onclick: () => { const n = prompt('שם השדה:', f.name); if (n && n.trim()) { f.name = n.trim(); save(); } } }, '✎'),
-        h('button', { class: 'icon-btn danger', type: 'button', onclick: async () => { if (await confirmDialog(`למחוק את השדה "${f.name}"? ערכים קיימים לא יוצגו יותר.`)) { await db.del('measurementFields', f.id); rerender(); } } }, '✕'));
+        h('button', { class: 'icon-btn', type: 'button', disabled: i === 0, 'aria-label': 'הזז למעלה', onclick: () => move(fields, i, -1) && save() }, '↑'),
+        h('button', { class: 'icon-btn', type: 'button', disabled: i === fields.length - 1, 'aria-label': 'הזז למטה', onclick: () => move(fields, i, 1) && save() }, '↓'),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: () => { const n = prompt('שם השדה:', f.name); if (n && n.trim()) { f.name = n.trim(); save(); } } }, '✎'),
+        h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': 'מחק', onclick: async () => { if (await confirmDialog(`למחוק את השדה "${f.name}"? ערכים קיימים לא יוצגו יותר.`)) { await db.del('measurementFields', f.id); rerender(); } } }, '✕'));
     }),
     h('button', { class: 'btn', type: 'button', onclick: async () => {
       const n = prompt('שם השדה החדש (למשל: כתפיים):'); if (!n || !n.trim()) return;
@@ -66,6 +79,6 @@ export async function settingsScreen(root) {
     } }, 'ייצוא נתונים'),
     h('button', { class: 'btn', type: 'button', onclick: () => fileIn.click() }, 'ייבוא מקובץ'), fileIn);
 
-  root.replaceChildren(h('header', { class: 'top' }, h('h1', {}, 'הגדרות')),
+  mount(root, h('header', { class: 'top' }, h('h1', {}, 'הגדרות')),
     ...workouts.map(workoutCard), fieldsCard, dataCard);
 }

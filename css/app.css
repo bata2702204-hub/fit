@@ -86,3 +86,11 @@ nav a i { font-style: normal; font-size: 20px; }
 nav a.on { color: var(--accent); font-weight: 700; }
 
 .toast { position: fixed; bottom: 100px; inset-inline: 0; margin: auto; width: fit-content; background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 20px; z-index: 50; }
+
+/* QA fixes */
+.step { width: 42px; }
+.field .date-input { width: 165px; font-size: 17px; }
+.link { min-height: 44px; min-width: 44px; }
+.icon-btn:disabled { opacity: .3; cursor: default; }
+.toast { display: flex; align-items: center; gap: 12px; }
+.toast-act { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; padding: 6px 4px; cursor: pointer; }

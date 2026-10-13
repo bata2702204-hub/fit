@@ -102,9 +102,11 @@ export async function getMeasurements() {
 }
 
 // Last session (before `beforeDate` / excluding `excludeId`) that contains the exercise with at least one set.
-export function lastSetsFor(sessions, name, excludeId) {
+export function lastSetsFor(sessions, name, excludeId, onOrBeforeDate) {
   for (const s of sessions) {
     if (s.id === excludeId) continue;
+    if (onOrBeforeDate && s.date > onOrBeforeDate) continue; // never show a *later* session as "previous"
+
     const ex = s.exercises.find((e) => e.name === name && e.sets.some((x) => x.weight != null || x.reps != null));
     if (ex) return { date: s.date, sets: ex.sets };
   }

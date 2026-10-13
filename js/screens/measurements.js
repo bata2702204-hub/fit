@@ -1,4 +1,4 @@
-import { h, num, fmtNum, fmtDate, todayISO, confirmDialog, toast } from '../util.js';
+import { h, num, fmtNum, fmtDate, todayISO, confirmDialog, toast, mount, cleanDecimal } from '../util.js';
 import * as db from '../db.js';
 
 export async function measurementsScreen(root, editId) {
@@ -10,6 +10,9 @@ export async function measurementsScreen(root, editId) {
   const dateIn = h('input', { type: 'date', class: 'date-input', value: editing?.date || todayISO() });
   const inputs = fields.map((f) => {
     const inp = h('input', { class: 'inp', type: 'text', inputmode: 'decimal', value: fmtNum(editing?.values[f.id]), placeholder: latest?.values[f.id] != null ? fmtNum(latest.values[f.id]) : '' });
+    inp.addEventListener('input', () => { inp.value = cleanDecimal(inp.value); });
+    inp.addEventListener('focus', () => setTimeout(() => inp.select(), 0));
+    inp.setAttribute('maxlength', '7');
     return { f, inp };
   });
 
@@ -47,7 +50,7 @@ export async function measurementsScreen(root, editId) {
       h('div', { class: 'm-grid' }, ...cells));
   });
 
-  root.replaceChildren(
+  mount(root,
     h('header', { class: 'top' }, h('h1', {}, editing ? 'עריכת מדידה' : 'מדידות שבועיות')),
     form,
     h('h2', {}, 'היסטוריה'),

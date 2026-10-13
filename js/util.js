@@ -49,11 +49,19 @@ export const setsText = (sets) =>
 export const topWeight = (sets) => Math.max(0, ...sets.map((s) => s.weight || 0));
 export const volume = (sets) => sets.reduce((a, s) => a + (s.weight || 0) * (s.reps || 0), 0);
 
-export function toast(msg) {
-  const t = h('div', { class: 'toast' }, msg);
+export const cleanDecimal = (v) => v.replace(/[^0-9.,]/g, '');
+
+// Optional action: { label, onClick } renders an undo-style button inside the toast.
+export function toast(msg, action) {
+  const t = h('div', { class: 'toast' }, msg,
+    action && h('button', { type: 'button', class: 'toast-act', onclick: () => { t.remove(); action.onClick(); } }, action.label));
   document.body.append(t);
-  setTimeout(() => t.remove(), 2200);
+  setTimeout(() => t.remove(), action ? 5000 : 2200);
 }
+
+export const mount = (root, ...nodes) => root.replaceChildren(...nodes.flat().filter((x) => x != null && x !== false));
+
+export const plural = (n, one, many) => (n === 1 ? one : `${n} ${many}`);
 
 export function confirmDialog(msg) {
   return Promise.resolve(window.confirm(msg));

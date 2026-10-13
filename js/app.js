@@ -9,6 +9,13 @@ import { settingsScreen } from './screens/settings.js';
 const root = document.getElementById('app');
 
 async function route() {
+  try { await render(); } catch (err) {
+    console.error(err);
+    root.replaceChildren(Object.assign(document.createElement('div'), { className: 'card', innerHTML: '<p>משהו השתבש בטעינה.</p><button class="btn primary" onclick="location.reload()">טען מחדש</button>' }));
+  }
+}
+
+async function render() {
   if (window.__leave) { try { await window.__leave(); } catch {} window.__leave = null; }
   const [, name = '', arg] = location.hash.replace(/^#/, '').split('/');
   const tab = name === 'session' ? '' : name;
