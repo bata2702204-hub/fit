@@ -125,18 +125,18 @@ test('✓ per set: starts the rest timer, vibrates, beeps path does not crash, p
   await expect(page.locator('.rest')).toHaveCount(0);
 });
 
-test('rest timer: adjust with −15 / +15 and default of 90 seconds', async ({ page }) => {
+test('rest timer: adjust with −15 / +15 and default of 2 minutes', async ({ page }) => {
   await setup(page);
-  expect(await page.evaluate(async () => (await (await import('/js/db.js')).getPrefs()).restSeconds)).toBe(90);
+  expect(await page.evaluate(async () => (await (await import('/js/db.js')).getPrefs()).restSeconds)).toBe(120);
   await startWorkout(page, 'A');
   const c = card(page, EX);
   await addSet(c, 60, 10);
   await chk(c).click();
-  await expect(page.locator('.rest-time')).toHaveText(/1:(30|29)/);
+  await expect(page.locator('.rest-time')).toHaveText(/2:00|1:59/);
   await page.getByRole('button', { name: 'הוסף 15 שניות' }).click();
-  await expect(page.locator('.rest-time')).toHaveText(/1:(45|44)/);
+  await expect(page.locator('.rest-time')).toHaveText(/2:15|2:14/);
   await page.getByRole('button', { name: 'הפחת 15 שניות' }).click();
-  await expect(page.locator('.rest-time')).toHaveText(/1:(30|29)/);
+  await expect(page.locator('.rest-time')).toHaveText(/2:00|1:59/);
 });
 
 test('progression suggestion: only when every set reached the top of the range', async ({ page }) => {
@@ -235,8 +235,7 @@ test('end-of-session summary: up / down / same / new vs last time, records, dura
   });
   await page.reload();
   await expect(page.locator('.sess-time')).toContainText(/⏱ 30:\d\d/);
-  await expect(page.locator('.sess-kcal')).toContainText('≈ 200');
-  await expect(page.locator('.sess-kcal')).toContainText('הערכה');
+  await expect(page.locator('.sess-kcal')).toHaveCount(0); // calories only in the end summary
   await addSet(card(page, 'חזה עליון'), 65, 8);
   await addSet(card(page, 'חזה רגיל'), 70, 10);
   await addSet(card(page, 'פרפר בכבלים'), 30, 10);
@@ -351,22 +350,22 @@ test('preferences: saved in storage, validated, included in backup', async ({ pa
   await setup(page);
   await page.goto('/#/settings');
   const rest = page.getByLabel('זמן מנוחה');
-  await rest.fill('120');
+  await rest.fill('150');
   await rest.blur();
   await expect(page.locator('.toast')).toContainText('נשמר');
   await rest.fill('abc');
   await rest.blur();
-  await expect(rest).toHaveValue('120');
+  await expect(rest).toHaveValue('150');
   await page.getByLabel('קפיצת משקל מוצעת').fill('5');
   await page.getByLabel('קפיצת משקל מוצעת').blur();
   await page.reload();
-  await expect(page.getByLabel('זמן מנוחה')).toHaveValue('120');
+  await expect(page.getByLabel('זמן מנוחה')).toHaveValue('150');
   const exp = await page.evaluate(async () => (await import('/js/db.js')).exportAll());
-  expect(exp.prefs).toEqual({ restSeconds: 120, increment: 5, met: 5 });
+  expect(exp.prefs).toEqual({ restSeconds: 150, increment: 5, met: 5 });
   // import restores them
   await page.evaluate(async () => { const d = await import('/js/db.js'); await d.setMeta('restSeconds', 30); });
   await page.evaluate(async (data) => (await import('/js/db.js')).importAll(data), exp);
-  expect(await page.evaluate(async () => (await (await import('/js/db.js')).getPrefs()).restSeconds)).toBe(120);
+  expect(await page.evaluate(async () => (await (await import('/js/db.js')).getPrefs()).restSeconds)).toBe(150);
   // old backups without prefs still import
   const old = { ...exp }; delete old.prefs;
   await page.evaluate(async (data) => (await import('/js/db.js')).importAll(data), old);

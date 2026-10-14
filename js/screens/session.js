@@ -11,7 +11,6 @@ export async function sessionScreen(root, id) {
   const all = await db.getSessions();
   const workouts = await db.getWorkouts();
   const prefs = await db.getPrefs();
-  const bodyKg = st.latestBodyWeight(await db.getFields(), await db.getMeasurements());
   const before = st.earlier(all, session);
 
   let timer;
@@ -55,10 +54,8 @@ export async function sessionScreen(root, id) {
   function drawMeta() {
     const ms = st.durationMs(session);
     if (ms == null) { metaBar.hidden = true; return; }
-    const kcal = st.calories(prefs.met, bodyKg, ms);
     mount(metaBar,
-      h('span', { class: 'sess-time', 'aria-label': 'משך האימון' }, `⏱ ${st.fmtDuration(ms)}`),
-      kcal != null ? h('span', { class: 'sess-kcal' }, `≈ ${kcal} קק״ל (הערכה)`) : null);
+      h('span', { class: 'sess-time', 'aria-label': 'משך האימון' }, `⏱ ${st.fmtDuration(ms)}`));
   }
   drawMeta();
   if (!session.done) metaTick = setInterval(drawMeta, 1000);

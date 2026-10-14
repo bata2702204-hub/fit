@@ -1,4 +1,4 @@
-const CACHE = 'fit-v7';
+const CACHE = 'fit-v8';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css', 'css/theme.css',
   'fonts/FrankRuhlLibre-hebrew-0.woff2', 'fonts/FrankRuhlLibre-latin-1.woff2', 'fonts/Heebo-hebrew-2.woff2', 'fonts/Heebo-latin-3.woff2',

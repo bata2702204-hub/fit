@@ -159,7 +159,7 @@ export async function getMeta(id) {
 export const setMeta = (id, value) => put('meta', { id, value });
 
 // User preferences (stored in meta). restSeconds: rest timer, increment: kg added by the progression hint, met: calorie estimate.
-export const PREF_DEFAULTS = { restSeconds: 90, increment: 2.5, met: 5 };
+export const PREF_DEFAULTS = { restSeconds: 120, increment: 2.5, met: 5 };
 export async function getPrefs() {
   const out = {};
   for (const [k, def] of Object.entries(PREF_DEFAULTS)) { const v = await getMeta(k); out[k] = v > 0 ? v : def; }
