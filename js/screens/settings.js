@@ -14,7 +14,15 @@ export async function settingsScreen(root) {
     return h('div', { class: 'card' },
       h('h3', {}, w.name),
       ...w.exercises.map((e, i) => h('div', { class: 'edit-row' },
-        h('span', { class: 'grow' }, e.name),
+        h('div', { class: 'ex-info' }, h('span', { class: 'grow' }, e.name),
+          h('button', { class: 'link range-btn', type: 'button', 'aria-label': `טווח חזרות ל${e.name}`, onclick: () => {
+            const cur = `${e.minReps ?? 8}-${e.maxReps ?? 12}`;
+            const v = prompt('טווח חזרות (למשל 8-12):', cur);
+            if (v == null) return;
+            const m = v.trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);
+            if (!m || +m[1] < 1 || +m[1] > +m[2]) { toast('טווח לא תקין. דוגמה: 8-12'); return; }
+            e.minReps = +m[1]; e.maxReps = +m[2]; save();
+          } }, `טווח: ${e.minReps ?? 8}–${e.maxReps ?? 12}`)),
         h('button', { class: 'icon-btn', type: 'button', disabled: i === 0, 'aria-label': 'הזז למעלה', onclick: () => move(w.exercises, i, -1) && save() }, '↑'),
         h('button', { class: 'icon-btn', type: 'button', disabled: i === w.exercises.length - 1, 'aria-label': 'הזז למטה', onclick: () => move(w.exercises, i, 1) && save() }, '↓'),
         h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: async () => {
@@ -52,6 +60,21 @@ export async function settingsScreen(root) {
       rerender();
     } }, '＋ הוסף שדה'));
 
+  const prefs = await db.getPrefs();
+  const prefRow = (label, key, step, unit) => {
+    const inp = h('input', { class: 'inp', type: 'text', inputmode: 'decimal', value: String(prefs[key]), 'aria-label': label, onchange: async (e) => {
+      const v = parseFloat(e.target.value.replace(',', '.'));
+      if (!(v > 0) || v > 9999) { e.target.value = String(prefs[key]); toast('ערך לא תקין'); return; }
+      prefs[key] = v; await db.setMeta(key, v); toast('נשמר');
+    } });
+    return h('div', { class: 'field' }, h('span', {}, `${label} (${unit})`), inp);
+  };
+  const prefsCard = h('div', { class: 'card' }, h('h3', {}, 'העדפות אימון'),
+    prefRow('זמן מנוחה', 'restSeconds', 5, 'שניות'),
+    prefRow('קפיצת משקל מוצעת', 'increment', 0.5, 'ק״ג'),
+    prefRow('MET לחישוב קלוריות', 'met', 0.5, 'ערך'),
+    h('small', { class: 'muted' }, 'MET 5 = אימון כוח בעצימות בינונית. הקלוריות הן הערכה בלבד.'));
+
   const fileIn = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
@@ -80,5 +103,5 @@ export async function settingsScreen(root) {
     h('button', { class: 'btn', type: 'button', onclick: () => fileIn.click() }, 'ייבוא מקובץ'), fileIn);
 
   mount(root, h('header', { class: 'top' }, h('h1', {}, 'הגדרות')),
-    ...workouts.map(workoutCard), fieldsCard, dataCard);
+    ...workouts.map(workoutCard), prefsCard, fieldsCard, dataCard);
 }

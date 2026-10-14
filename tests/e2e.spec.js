@@ -37,6 +37,9 @@ async function startWorkout(page, id) {
 }
 async function finish(page) {
   await page.getByRole('button', { name: /סיים אימון|שמור וסגור/ }).click();
+  const close = page.locator('.summary-close');
+  await expect(close.or(page.locator('.start-grid'))).toBeVisible();
+  if (await close.isVisible()) await close.click(); // first finish shows the summary screen
   await expect(page.locator('.start-grid')).toBeVisible();
 }
 async function logQuick(page, id, exName, w, r) {

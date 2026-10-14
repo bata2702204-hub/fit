@@ -123,6 +123,7 @@ export async function exportAll() {
     sessions: await getAll('sessions'),
     measurementFields: await getAll('measurementFields'),
     measurements: await getAll('measurements'),
+    prefs: await getPrefs(),
   };
   await put('meta', { id: 'lastBackup', value: Date.now() });
   return data;
@@ -145,6 +146,9 @@ export async function importAll(d) {
       t.onerror = () => rej(t.error);
     });
   }
+  if (d.prefs && typeof d.prefs === 'object') {
+    for (const k of Object.keys(PREF_DEFAULTS)) if (Number(d.prefs[k]) > 0) await setMeta(k, Number(d.prefs[k]));
+  }
   await put('meta', { id: 'seeded', value: true });
 }
 
@@ -153,3 +157,11 @@ export async function getMeta(id) {
   return m ? m.value : undefined;
 }
 export const setMeta = (id, value) => put('meta', { id, value });
+
+// User preferences (stored in meta). restSeconds: rest timer, increment: kg added by the progression hint, met: calorie estimate.
+export const PREF_DEFAULTS = { restSeconds: 90, increment: 2.5, met: 5 };
+export async function getPrefs() {
+  const out = {};
+  for (const [k, def] of Object.entries(PREF_DEFAULTS)) { const v = await getMeta(k); out[k] = v > 0 ? v : def; }
+  return out;
+}

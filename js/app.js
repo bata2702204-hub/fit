@@ -1,6 +1,7 @@
 import * as db from './db.js';
 import { homeScreen } from './screens/home.js';
 import { sessionScreen } from './screens/session.js';
+import { summaryScreen } from './screens/summary.js';
 import { historyScreen } from './screens/history.js';
 import { measurementsScreen } from './screens/measurements.js';
 import { progressScreen } from './screens/progress.js';
@@ -18,12 +19,13 @@ async function route() {
 async function render() {
   if (window.__leave) { try { await window.__leave(); } catch {} window.__leave = null; }
   const [, name = '', arg] = location.hash.replace(/^#/, '').split('/');
-  const tab = name === 'session' ? '' : name;
+  const tab = name === 'session' || name === 'summary' ? '' : name;
   document.querySelectorAll('nav a').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
   document.querySelector('nav').hidden = name === 'session';
   window.scrollTo(0, 0);
   switch (name) {
     case 'session': return sessionScreen(root, arg);
+    case 'summary': return summaryScreen(root, arg);
     case 'history': return historyScreen(root);
     case 'measurements': return measurementsScreen(root, arg);
     case 'progress': return progressScreen(root);
