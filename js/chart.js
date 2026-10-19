@@ -43,3 +43,16 @@ export function lineChart(points, { unit = '' } = {}) {
   svg.append(s('text', { x: Math.min(x(points.length - 1) + 4, W - 2), y: y(last.value) - 8, 'text-anchor': 'end', class: 'val' }, `${Math.round(last.value * 100) / 100}${unit ? ' ' + unit : ''}`));
   return svg;
 }
+
+// Tiny trend line for a list row. values: numbers
+export function sparkline(values, { w = 64, h = 22 } = {}) {
+  const svg = s('svg', { viewBox: `0 0 ${w} ${h}`, class: 'spark', role: 'img', width: w, height: h });
+  if (!values.length) return svg;
+  let min = Math.min(...values), max = Math.max(...values);
+  if (min === max) { min -= 1; max += 1; }
+  const x = (i) => (values.length === 1 ? w / 2 : 3 + (i * (w - 6)) / (values.length - 1));
+  const y = (v) => 3 + ((max - v) / (max - min)) * (h - 6);
+  svg.append(s('path', { d: values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' '), class: 'spark-line' }));
+  svg.append(s('circle', { cx: x(values.length - 1), cy: y(values[values.length - 1]), r: 2.5, class: 'spark-dot' }));
+  return svg;
+}

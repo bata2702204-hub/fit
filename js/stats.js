@@ -112,3 +112,47 @@ export function monthCells(year, month) {
   while (cells.length % 7) cells.push(null);
   return cells;
 }
+
+// ---- monthly overview ----
+export const monthKey = (y, m) => `${y}-${String(m + 1).padStart(2, '0')}`; // m is 0-based
+export const prevMonth = (y, m) => (m ? { y, m: m - 1 } : { y: y - 1, m: 11 });
+
+const setVol = (sets) => sets.reduce((a, s) => a + (s.weight || 0) * (s.reps || 0), 0);
+
+/* Per-exercise and overall numbers for one month (key 'YYYY-MM') against the previous one.
+   change = % change of top weight from the first to the last session of the month; null when the exercise
+   has fewer than 2 weighted sessions in that month. */
+export function monthlyOverview(sessions, key, prevKey) {
+  const inMonth = (k) => sessions.filter((s) => hasWork(s) && s.date.startsWith(k))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.created || 0) - (b.created || 0));
+  const cur = inMonth(key), prev = inMonth(prevKey);
+  const volOf = (list, name) => list.reduce((a, s) => a + s.exercises.filter((e) => e.name === name).reduce((x, e) => x + setVol(e.sets), 0), 0);
+  const setsOf = (list, name) => list.reduce((a, s) => a + s.exercises.filter((e) => e.name === name).reduce((x, e) => x + e.sets.filter(has).length, 0), 0);
+  const names = [];
+  for (const s of cur) for (const e of s.exercises) if (e.sets.some(has) && !names.includes(e.name)) names.push(e.name);
+  const exercises = names.map((name) => {
+    const tops = [];
+    for (const s of cur) {
+      const w = Math.max(0, ...s.exercises.filter((e) => e.name === name).flatMap((e) => e.sets.map((x) => x.weight || 0)));
+      if (w > 0) tops.push(w);
+    }
+    const enough = tops.length >= 2;
+    const start = tops[0] ?? null, end = tops[tops.length - 1] ?? null;
+    const change = enough ? round2(((end - start) / start) * 100) : null;
+    return {
+      name, tops, start, end, change,
+      trend: change == null ? null : change > 0 ? 'up' : change < 0 ? 'down' : 'same',
+      sets: setsOf(cur, name), prevSets: setsOf(prev, name),
+      volume: volOf(cur, name), prevVolume: volOf(prev, name),
+    };
+  });
+  exercises.sort((a, b) => (b.change ?? -Infinity) - (a.change ?? -Infinity));
+  const count = (t) => exercises.filter((e) => e.trend === t).length;
+  return {
+    exercises,
+    improved: count('up'), same: count('same'), dropped: count('down'), insufficient: exercises.filter((e) => e.change == null).length,
+    workouts: cur.length, prevWorkouts: prev.length,
+    volume: exercises.reduce((a, e) => a + e.volume, 0),
+    prevVolume: prev.reduce((a, s) => a + s.exercises.reduce((x, e) => x + setVol(e.sets), 0), 0),
+  };
+}

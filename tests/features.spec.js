@@ -313,9 +313,9 @@ test('consistency calendar + workouts per week', async ({ page }) => {
   await expect(bars).toHaveCount(12);
   await expect(bars.last()).toHaveAttribute('data-count', /[1-9]/);
   // previous month navigation
-  await page.getByRole('button', { name: 'חודש קודם' }).click();
+  await page.locator('.cal').getByRole('button', { name: 'חודש קודם' }).click();
   await expect(page.locator('.cal-day.today')).toHaveCount(0);
-  await page.getByRole('button', { name: 'חודש הבא' }).click();
+  await page.locator('.cal').getByRole('button', { name: 'חודש הבא' }).click();
   await expect(page.locator('.cal-day.today')).toHaveCount(1);
 });
 
