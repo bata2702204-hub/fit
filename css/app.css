@@ -94,3 +94,7 @@ nav a.on { color: var(--accent); font-weight: 700; }
 .icon-btn:disabled { opacity: .3; cursor: default; }
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-act { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; padding: 6px 4px; cursor: pointer; }
+
+.wk-head { display: flex; align-items: center; gap: 6px; }
+.wk-head h3 { margin: 0; }
+.add-workout { width: 100%; margin-bottom: 12px; }

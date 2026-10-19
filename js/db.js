@@ -44,7 +44,7 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 
 const SEED_WORKOUTS = {
   A: ['חזה עליון', 'חזה רגיל', 'פרפר בכבלים', 'לחיצת חבל בפולי', 'פשיטת מרפקים מעל הראש', 'כתף אחורית'],
-  B: ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'כתף אחורית', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה'],
+  B: ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה'],
 };
 
 const SEED_FIELDS = [
@@ -60,15 +60,18 @@ export async function init() {
   try { await navigator.storage?.persist?.(); } catch {}
   const seeded = await get('meta', 'seeded');
   if (seeded) {
+    await migrate();
     // migration: rename default field מותניים -> בטן
     for (const f of await getAll('measurementFields')) {
       if (f.name === 'מותניים') await put('measurementFields', { ...f, name: 'בטן' });
     }
     return;
   }
+  let wOrder = 0;
   for (const id of ['A', 'B']) {
     await put('workouts', {
       id,
+      order: wOrder++,
       name: `אימון ${id}`,
       exercises: SEED_WORKOUTS[id].map((name) => ({ id: uid(), name })),
     });
@@ -78,12 +81,24 @@ export async function init() {
     await put('measurementFields', { id: uid(), order: order++, ...f });
   }
   await put('meta', { id: 'seeded', value: true });
+  await put('meta', { id: 'migrated_noRearDeltB', value: true });
+}
+
+// One-time migrations for data created by older versions.
+async function migrate() {
+  const ws = (await getAll('workouts')).sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || a.id.localeCompare(b.id));
+  for (let i = 0; i < ws.length; i++) if (ws[i].order !== i) await put('workouts', { ...ws[i], order: i });
+  if (!(await get('meta', 'migrated_noRearDeltB'))) {
+    const b = ws.find((w) => w.id === 'B');
+    if (b) await put('workouts', { ...b, exercises: b.exercises.filter((e) => e.name !== 'כתף אחורית') });
+    await put('meta', { id: 'migrated_noRearDeltB', value: true });
+  }
 }
 
 // ---- Domain helpers ----
 export async function getWorkouts() {
   const w = await getAll('workouts');
-  return w.sort((a, b) => a.id.localeCompare(b.id));
+  return w.sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || a.id.localeCompare(b.id));
 }
 
 export async function getSessions() {

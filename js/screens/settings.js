@@ -9,10 +9,23 @@ export async function settingsScreen(root) {
 
   const move = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return false; [arr[i], arr[j]] = [arr[j], arr[i]]; return true; };
 
-  function workoutCard(w) {
+  const saveOrder = async () => { workouts.forEach((x, k) => (x.order = k)); await Promise.all(workouts.map((x) => db.put('workouts', x))); rerender(); };
+
+  function workoutCard(w, wi) {
     const save = () => db.put('workouts', w).then(rerender);
-    return h('div', { class: 'card' },
-      h('h3', {}, w.name),
+    return h('div', { class: 'card workout-card' },
+      h('div', { class: 'wk-head' }, h('h3', { class: 'grow' }, w.name),
+        h('button', { class: 'icon-btn', type: 'button', disabled: wi === 0, 'aria-label': `הזז את ${w.name} למעלה`, onclick: () => move(workouts, wi, -1) && saveOrder() }, '↑'),
+        h('button', { class: 'icon-btn', type: 'button', disabled: wi === workouts.length - 1, 'aria-label': `הזז את ${w.name} למטה`, onclick: () => move(workouts, wi, 1) && saveOrder() }, '↓'),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': `שנה שם אימון ${w.name}`, onclick: () => {
+          const n = prompt('שם האימון:', w.name);
+          if (!n || !n.trim() || n.trim() === w.name) return;
+          w.name = n.trim(); save();
+        } }, '✎'),
+        h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': `מחק אימון ${w.name}`, onclick: async () => {
+          if (!(await confirmDialog(`למחוק את "${w.name}"? האימונים וההיסטוריה שכבר נשמרו יישארו.`))) return;
+          await db.del('workouts', w.id); rerender();
+        } }, '✕')),
       ...w.exercises.map((e, i) => h('div', { class: 'edit-row' },
         h('div', { class: 'ex-info' }, h('span', { class: 'grow' }, e.name),
           h('button', { class: 'link range-btn', type: 'button', 'aria-label': `טווח חזרות ל${e.name}`, onclick: () => {
@@ -102,6 +115,12 @@ export async function settingsScreen(root) {
     } }, 'ייצוא נתונים'),
     h('button', { class: 'btn', type: 'button', onclick: () => fileIn.click() }, 'ייבוא מקובץ'), fileIn);
 
+  const addWorkoutBtn = h('button', { class: 'btn add-workout', type: 'button', onclick: async () => {
+    const n = prompt('שם האימון החדש (למשל: אימון C):'); if (!n || !n.trim()) return;
+    await db.put('workouts', { id: db.uid(), name: n.trim(), order: workouts.length, exercises: [] });
+    rerender();
+  } }, '＋ הוסף אימון');
+
   mount(root, h('header', { class: 'top' }, h('h1', {}, 'הגדרות')),
-    ...workouts.map(workoutCard), prefsCard, fieldsCard, dataCard);
+    ...workouts.map(workoutCard), addWorkoutBtn, prefsCard, fieldsCard, dataCard);
 }

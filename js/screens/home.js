@@ -25,12 +25,12 @@ export async function homeScreen(root) {
   mount(root,
     h('header', { class: 'top' }, h('h1', {}, 'מעקב אימונים')),
     inProgress.length ? h('div', { class: 'card resume' },
-      h('div', {}, `אימון ${inProgress[0].workoutId} בתהליך · ${fmtDate(inProgress[0].date)}`),
+      h('div', {}, `${inProgress[0].workoutName || `אימון ${inProgress[0].workoutId}`} בתהליך · ${fmtDate(inProgress[0].date)}`),
       h('a', { class: 'btn primary', href: `#/session/${inProgress[0].id}` }, 'המשך')) : null,
     h('div', { class: 'start-grid' }, ...workouts.map((w) => {
       const last = sessions.find((s) => s.workoutId === w.id && s.exercises.some((e) => e.sets.length));
       return h('button', { class: 'start-btn', type: 'button', onclick: () => start(w) },
-        h('span', { class: 'big-letter' }, w.id),
+        h('span', { class: 'big-letter' }, w.name.replace(/^אימון\s*/, '').trim().charAt(0).toUpperCase() || '＋'),
         h('span', {}, `התחל ${w.name}`),
         h('small', {}, last ? `אחרון: ${fmtDate(last.date)}` : 'עוד לא בוצע'));
     })),
@@ -38,5 +38,5 @@ export async function homeScreen(root) {
     h('h2', {}, 'אחרונים'),
     recent.length ? h('div', { class: 'list' }, ...recent.map((s) =>
       h('a', { class: 'card row', href: `#/session/${s.id}` },
-        h('b', {}, s.workoutName || `אימון ${s.workoutId}`), h('span', {}, fmtDate(s.date))))) : h('p', { class: 'empty' }, 'עוד אין אימונים. בחר אימון A או B כדי להתחיל.'));
+        h('b', {}, s.workoutName || `אימון ${s.workoutId}`), h('span', {}, fmtDate(s.date))))) : h('p', { class: 'empty' }, 'עוד אין אימונים. בחר אימון כדי להתחיל.'));
 }

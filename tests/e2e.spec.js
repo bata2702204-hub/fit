@@ -3,7 +3,7 @@ const fs = require('fs');
 
 // ---------- helpers ----------
 const A = ['חזה עליון', 'חזה רגיל', 'פרפר בכבלים', 'לחיצת חבל בפולי', 'פשיטת מרפקים מעל הראש', 'כתף אחורית'];
-const B = ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'כתף אחורית', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה'];
+const B = ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה'];
 
 const dbAll = (page, store) => page.evaluate(async (s) => (await import('/js/db.js')).getAll(s), store);
 const sessionsDB = (page) => dbAll(page, 'sessions');
@@ -114,11 +114,13 @@ test('"last time" is shown in the next session', async ({ page }) => {
   await expect(inputs(rows(c).first()).nth(0)).toHaveValue('80');
 });
 
-test('shared exercise "כתף אחורית" has one history across A and B', async ({ page }) => {
+test('"כתף אחורית" is only in workout A, and its history is kept', async ({ page }) => {
   await setup(page);
   await logQuick(page, 'A', 'כתף אחורית', 12.5, 15);
-  await startWorkout(page, 'B');
+  await startWorkout(page, 'A');
   await expect(card(page, 'כתף אחורית').locator('.prev')).toContainText('12.5×15');
+  await startWorkout(page, 'B');
+  await expect(page.locator('.ex-name', { hasText: 'כתף אחורית' })).toHaveCount(0);
 });
 
 test('in-progress session survives reload and can be resumed', async ({ page }) => {
