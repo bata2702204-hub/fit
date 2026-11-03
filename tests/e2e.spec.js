@@ -275,9 +275,9 @@ test('settings: add / rename / reorder / delete exercises, persisted and used by
   await expect(wA.locator('.edit-row').first()).toContainText('חזה עליון בשיפוע');
   expect((await names())[0]).toBe('חזה עליון בשיפוע');
 
-  await wA.locator('.edit-row').nth(1).getByRole('button', { name: 'הזז למעלה' }).click();
+  await wA.locator('.edit-row').nth(1).locator('.drag-handle').press('ArrowUp');
   expect((await names()).slice(0, 2)).toEqual(['חזה רגיל', 'חזה עליון בשיפוע']);
-  await wA.locator('.edit-row').nth(0).getByRole('button', { name: 'הזז למטה' }).click();
+  await wA.locator('.edit-row').nth(0).locator('.drag-handle').press('ArrowDown');
   expect((await names()).slice(0, 2)).toEqual(['חזה עליון בשיפוע', 'חזה רגיל']);
 
   st.confirm = false;

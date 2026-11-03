@@ -1,10 +1,10 @@
-const CACHE = 'fit-v10';
+const CACHE = 'fit-v11';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css', 'css/theme.css',
   'fonts/FrankRuhlLibre-hebrew-0.woff2', 'fonts/FrankRuhlLibre-latin-1.woff2', 'fonts/Heebo-hebrew-2.woff2', 'fonts/Heebo-latin-3.woff2',
   'js/app.js', 'js/db.js', 'js/util.js', 'js/chart.js',
   'js/screens/home.js', 'js/screens/session.js', 'js/screens/history.js',
-  'js/screens/measurements.js', 'js/screens/progress.js', 'js/screens/settings.js', 'js/screens/summary.js', 'js/stats.js', 'js/rest.js',
+  'js/screens/measurements.js', 'js/screens/progress.js', 'js/screens/settings.js', 'js/screens/summary.js', 'js/stats.js', 'js/rest.js', 'js/sortable.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
 ];
 

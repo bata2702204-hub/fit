@@ -1,6 +1,6 @@
 // Regression tests for issues found by the independent QA pass.
 const { test, expect } = require('@playwright/test');
-const { sessionsDB, setup, card, rows, inputs, fill, startWorkout, finish, logQuick } = require('./helpers');
+const { A, dbAll, sessionsDB, setup, card, rows, inputs, fill, startWorkout, finish, logQuick } = require('./helpers');
 
 test('home never renders the literal text "null"; empty states are explained', async ({ page }) => {
   await setup(page);
@@ -135,10 +135,12 @@ test('renaming an exercise in settings keeps its history (when confirmed)', asyn
   await expect(page.locator('select.sel').first().locator('option')).toHaveText(['לחיצת חזה']);
 });
 
-test('settings: first "up" and last "down" buttons are disabled', async ({ page }) => {
+test('settings: keyboard reorder does nothing past the first/last row', async ({ page }) => {
   await setup(page);
   await page.goto('/#/settings');
   const wA = page.locator('.card', { has: page.locator('h3', { hasText: 'אימון A' }) });
-  await expect(wA.locator('.edit-row').first().getByRole('button', { name: 'הזז למעלה' })).toBeDisabled();
-  await expect(wA.locator('.edit-row').last().getByRole('button', { name: 'הזז למטה' })).toBeDisabled();
+  await wA.locator('.edit-row').first().locator('.drag-handle').press('ArrowUp');
+  await wA.locator('.edit-row').last().locator('.drag-handle').press('ArrowDown');
+  await page.waitForTimeout(200);
+  expect((await dbAll(page, 'workouts')).find((w) => w.id === 'A').exercises.map((e) => e.name)).toEqual(A);
 });

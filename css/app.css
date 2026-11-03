@@ -98,3 +98,19 @@ nav a.on { color: var(--accent); font-weight: 700; }
 .wk-head { display: flex; align-items: center; gap: 6px; }
 .wk-head h3 { margin: 0; }
 .add-workout { width: 100%; margin-bottom: 12px; }
+
+/* drag to reorder */
+.drag-handle { all: unset; box-sizing: border-box; flex: none; width: 44px; min-height: 44px; display: grid; place-items: center; font-size: 24px; line-height: 1; color: var(--muted); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; border-radius: 12px; }
+.drag-handle:focus-visible { outline: 2px solid var(--accent); }
+.ex-top { display: flex; align-items: center; gap: 4px; }
+.ex-top .ex-head { flex: 1; width: auto; min-width: 0; }
+.dragging { position: relative; z-index: 20; box-shadow: 0 14px 34px rgba(0, 0, 0, .55); opacity: .96; transition: none; }
+.dragging .drag-handle { cursor: grabbing; color: var(--accent); }
+.ex-list.sorting .ex > :not(.ex-top) { display: none; }
+.btn[hidden], .card[hidden] { display: none; }
+.add-form .toggle { display: flex; align-items: center; gap: 10px; min-height: 48px; }
+.add-form .toggle input { width: 22px; height: 22px; accent-color: var(--accent); }
+.make-perm { background: transparent; border: 1px dashed var(--line); color: var(--accent); }
+.link.make-perm { all: unset; cursor: pointer; color: var(--accent); font-size: 14px; display: block; margin-top: 4px; }
+.order-save { border: 1px solid var(--accent); color: var(--accent); background: transparent; }
+.edit-row.dragging { background: var(--card2); border-radius: 12px; }

@@ -128,6 +128,14 @@ export function lastSetsFor(sessions, name, excludeId, onOrBeforeDate) {
   return null;
 }
 
+// Adds an exercise to the end of a workout's default list (no-op if it is already there). History is keyed by name, so it carries over.
+export async function addExerciseToWorkout(w, name) {
+  if (w.exercises.some((e) => e.name === name)) return false;
+  w.exercises.push({ id: uid(), name });
+  await put('workouts', w);
+  return true;
+}
+
 // ---- Backup ----
 export async function exportAll() {
   const data = {

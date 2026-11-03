@@ -1,5 +1,6 @@
 import { h, toast, confirmDialog, downloadJSON, todayISO, fmtDate, mount } from '../util.js';
 import * as db from '../db.js';
+import { sortable, reorder } from '../sortable.js';
 
 export async function settingsScreen(root) {
   const workouts = await db.getWorkouts();
@@ -13,6 +14,34 @@ export async function settingsScreen(root) {
 
   function workoutCard(w, wi) {
     const save = () => db.put('workouts', w).then(rerender);
+    const exList = h('div', { class: 'ex-sort' });
+    sortable(exList, { onReorder: (from, to) => { reorder(w.exercises, from, to); save(); } });
+    exList.append(...w.exercises.map((e, i) => h('div', { class: 'edit-row' },
+      h('button', { class: 'drag-handle', type: 'button', 'aria-label': `גרור לשינוי סדר: ${e.name}` }, '≡'),
+      h('div', { class: 'ex-info' }, h('span', { class: 'grow' }, e.name),
+        h('button', { class: 'link range-btn', type: 'button', 'aria-label': `טווח חזרות ל${e.name}`, onclick: () => {
+          const cur = `${e.minReps ?? 8}-${e.maxReps ?? 12}`;
+          const v = prompt('טווח חזרות (למשל 8-12):', cur);
+          if (v == null) return;
+          const m = v.trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);
+          if (!m || +m[1] < 1 || +m[1] > +m[2]) { toast('טווח לא תקין. דוגמה: 8-12'); return; }
+          e.minReps = +m[1]; e.maxReps = +m[2]; save();
+        } }, `טווח: ${e.minReps ?? 8}–${e.maxReps ?? 12}`)),
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: async () => {
+        const n = prompt('שם התרגיל:', e.name);
+        if (!n || !n.trim() || n.trim() === e.name) return;
+        const old = e.name; e.name = n.trim();
+        if (await confirmDialog(`לעדכן את השם גם באימונים קודמים של ${w.name}, כדי שההיסטוריה של התרגיל תישמר?`)) {
+          for (const s of await db.getSessions()) {
+            if (s.workoutId !== w.id) continue;
+            let changed = false;
+            for (const x of s.exercises) if (x.name === old) { x.name = e.name; changed = true; }
+            if (changed) await db.put('sessions', s);
+          }
+        }
+        save();
+      } }, '✎'),
+      h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': 'מחק', onclick: async () => { if (await confirmDialog(`למחוק את "${e.name}" מהאימון? ההיסטוריה נשמרת.`)) { w.exercises.splice(i, 1); save(); } } }, '✕'))));
     return h('div', { class: 'card workout-card' },
       h('div', { class: 'wk-head' }, h('h3', { class: 'grow' }, w.name),
         h('button', { class: 'icon-btn', type: 'button', disabled: wi === 0, 'aria-label': `הזז את ${w.name} למעלה`, onclick: () => move(workouts, wi, -1) && saveOrder() }, '↑'),
@@ -26,33 +55,7 @@ export async function settingsScreen(root) {
           if (!(await confirmDialog(`למחוק את "${w.name}"? האימונים וההיסטוריה שכבר נשמרו יישארו.`))) return;
           await db.del('workouts', w.id); rerender();
         } }, '✕')),
-      ...w.exercises.map((e, i) => h('div', { class: 'edit-row' },
-        h('div', { class: 'ex-info' }, h('span', { class: 'grow' }, e.name),
-          h('button', { class: 'link range-btn', type: 'button', 'aria-label': `טווח חזרות ל${e.name}`, onclick: () => {
-            const cur = `${e.minReps ?? 8}-${e.maxReps ?? 12}`;
-            const v = prompt('טווח חזרות (למשל 8-12):', cur);
-            if (v == null) return;
-            const m = v.trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);
-            if (!m || +m[1] < 1 || +m[1] > +m[2]) { toast('טווח לא תקין. דוגמה: 8-12'); return; }
-            e.minReps = +m[1]; e.maxReps = +m[2]; save();
-          } }, `טווח: ${e.minReps ?? 8}–${e.maxReps ?? 12}`)),
-        h('button', { class: 'icon-btn', type: 'button', disabled: i === 0, 'aria-label': 'הזז למעלה', onclick: () => move(w.exercises, i, -1) && save() }, '↑'),
-        h('button', { class: 'icon-btn', type: 'button', disabled: i === w.exercises.length - 1, 'aria-label': 'הזז למטה', onclick: () => move(w.exercises, i, 1) && save() }, '↓'),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: async () => {
-          const n = prompt('שם התרגיל:', e.name);
-          if (!n || !n.trim() || n.trim() === e.name) return;
-          const old = e.name; e.name = n.trim();
-          if (await confirmDialog(`לעדכן את השם גם באימונים קודמים של ${w.name}, כדי שההיסטוריה של התרגיל תישמר?`)) {
-            for (const s of await db.getSessions()) {
-              if (s.workoutId !== w.id) continue;
-              let changed = false;
-              for (const x of s.exercises) if (x.name === old) { x.name = e.name; changed = true; }
-              if (changed) await db.put('sessions', s);
-            }
-          }
-          save();
-        } }, '✎'),
-        h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': 'מחק', onclick: async () => { if (await confirmDialog(`למחוק את "${e.name}" מהאימון? ההיסטוריה נשמרת.`)) { w.exercises.splice(i, 1); save(); } } }, '✕'))),
+      exList,
       h('button', { class: 'btn', type: 'button', onclick: () => { const n = prompt('שם התרגיל החדש:'); if (n && n.trim()) { w.exercises.push({ id: db.uid(), name: n.trim() }); save(); } } }, '＋ הוסף תרגיל'));
   }
 

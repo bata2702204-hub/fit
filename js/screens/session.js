@@ -2,6 +2,7 @@ import { h, mount, num, fmtNum, setsText, fmtDate, confirmDialog, cleanDecimal, 
 import * as db from '../db.js';
 import * as st from '../stats.js';
 import { startRest, stopRest } from '../rest.js';
+import { sortable, reorder } from '../sortable.js';
 
 const hasData = (s) => s.weight != null || s.reps != null;
 
@@ -12,6 +13,9 @@ export async function sessionScreen(root, id) {
   const workouts = await db.getWorkouts();
   const prefs = await db.getPrefs();
   const before = st.earlier(all, session);
+  const workout = workouts.find((w) => w.id === session.workoutId); // may be gone if the workout was deleted
+  const permRefresh = []; // each card's "make permanent" button re-checks itself against the workout
+  const inWorkout = (name) => !!workout?.exercises.some((e) => e.name === name);
 
   let timer;
   let metaTick;
@@ -154,17 +158,46 @@ export async function sessionScreen(root, id) {
 
     const head = h('button', { class: 'ex-head', type: 'button', onclick: () => card.classList.toggle('collapsed') },
       h('span', { class: 'ex-name' }, ex.name), badge, h('span', { class: 'chev' }, '▾'));
-    card.append(...[head,
+    const permBtn = h('button', { class: 'btn make-perm', type: 'button', onclick: async () => {
+      if (await db.addExerciseToWorkout(workout, ex.name)) toast(`"${ex.name}" נוסף לסוף ${workout.name}`);
+      permRefresh.forEach((f) => f()); refreshOrderBtn();
+    } }, '📌 הפוך לתרגיל קבוע באימון');
+    const refreshPerm = () => { permBtn.hidden = !workout || inWorkout(ex.name); };
+    refreshPerm(); permRefresh.push(refreshPerm);
+    card.append(...[h('div', { class: 'ex-top' }, h('button', { class: 'drag-handle', type: 'button', 'aria-label': `גרור לשינוי סדר: ${ex.name}` }, '≡'), head),
       h('div', { class: 'prev' }, `${prevInfo ? `פעם קודמת (${fmtDate(prevInfo.date)}): ${setsText(prevInfo.sets)}` : 'פעם ראשונה בתרגיל הזה'} · יעד ${range.min}–${range.max}`),
       prevNote ? h('div', { class: 'ex-body hint prev-note' }, `📝 הערה מ־${fmtDate(prevNote.date)}: ${prevNote.text}`) : null,
       suggBox && h('div', { class: 'ex-body' }, suggBox),
       body,
-      h('div', { class: 'ex-body' }, note)].filter(Boolean));
+      h('div', { class: 'ex-body' }, note, permBtn)].filter(Boolean));
     ctl.rerender();
     return card;
   }
 
   for (const ex of session.exercises) list.append(exCard(ex));
+
+  // Reordering in a session only affects this session, until saved as the workout's default order.
+  const orderBtn = h('button', { class: 'btn order-save', type: 'button', onclick: async () => {
+    const pos = new Map(session.exercises.map((e, i) => [e.name, i]));
+    const inSession = workout.exercises.filter((e) => pos.has(e.name)).sort((a, b) => pos.get(a.name) - pos.get(b.name));
+    const rest = workout.exercises.filter((e) => !pos.has(e.name));
+    workout.exercises = [...inSession, ...rest];
+    await db.put('workouts', workout);
+    refreshOrderBtn();
+    toast(`הסדר נשמר כברירת מחדל ל${workout.name}`);
+  } }, '💾 שמור כסדר ברירת המחדל של האימון');
+  function refreshOrderBtn() {
+    const have = new Set(session.exercises.map((e) => e.name));
+    const want = workout ? workout.exercises.map((e) => e.name).filter((n) => have.has(n)) : [];
+    const cur = session.exercises.map((e) => e.name).filter((n) => want.includes(n));
+    orderBtn.hidden = !workout || cur.every((n, i) => n === want[i]);
+  }
+  refreshOrderBtn();
+  sortable(list, {
+    onStart: () => list.classList.add('sorting'),
+    onEnd: () => list.classList.remove('sorting'),
+    onReorder: (from, to) => { reorder(session.exercises, from, to); save(); refreshOrderBtn(); },
+  });
 
   const doneBtn = h('button', { class: 'btn primary big', type: 'button', onclick: async () => {
     const first = !session.done;
@@ -187,21 +220,34 @@ export async function sessionScreen(root, id) {
     }
   } }, 'מחק אימון');
 
-  const addEx = h('button', { class: 'btn', type: 'button', onclick: () => {
-    const name = prompt('שם התרגיל:');
-    if (!name || !name.trim()) return;
-    const ex = { name: name.trim(), sets: [] };
+  // Adding an exercise: one-time by default; the toggle also adds it to the end of the workout's default list.
+  const nameInp = h('input', { class: 'inp', type: 'text', maxlength: 60, placeholder: 'שם התרגיל', 'aria-label': 'שם התרגיל' });
+  const permChk = h('input', { type: 'checkbox', role: 'switch', 'aria-label': 'הוסף לאימון באופן קבוע' });
+  const addForm = h('div', { class: 'card add-form', hidden: true },
+    nameInp,
+    workout ? h('label', { class: 'toggle' }, permChk, h('span', {}, `הוסף ל${workout.name} באופן קבוע`)) : null,
+    h('button', { class: 'btn primary', type: 'button', onclick: () => submitEx() }, 'הוסף תרגיל'));
+  nameInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitEx(); } });
+  async function submitEx() {
+    const name = nameInp.value.trim();
+    if (!name) return;
+    if (session.exercises.some((e) => e.name === name)) { toast('התרגיל כבר קיים באימון'); return; }
+    const ex = { name, sets: [] };
     session.exercises.push(ex);
+    if (workout && permChk.checked) await db.addExerciseToWorkout(workout, name);
     list.append(exCard(ex));
+    permRefresh.forEach((f) => f()); refreshOrderBtn();
+    nameInp.value = ''; permChk.checked = false; addForm.hidden = true;
     save();
-  } }, '＋ תרגיל חד־פעמי');
+  }
+  const addEx = h('button', { class: 'btn add-ex', type: 'button', onclick: () => { addForm.hidden = !addForm.hidden; if (!addForm.hidden) nameInp.focus(); } }, '＋ הוסף תרגיל');
 
   root.replaceChildren(
     h('header', { class: 'top' },
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'חזרה', onclick: async () => { await leave(); history.length > 1 ? history.back() : (location.hash = '#/'); } }, '›'),
       h('h1', {}, session.workoutName || `אימון ${session.workoutId}`),
       dateInput),
-    metaBar, list, addEx, h('div', { class: 'actions' }, doneBtn, delBtn));
+    metaBar, orderBtn, list, addEx, addForm, h('div', { class: 'actions' }, doneBtn, delBtn));
 
   window.__leave = leave;
 }

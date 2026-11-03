@@ -12,6 +12,7 @@ export async function summaryScreen(root, id) {
   const prefs = await db.getPrefs();
   const kg = st.latestBodyWeight(await db.getFields(), await db.getMeasurements());
   const before = st.earlier(all, session);
+  const workout = (await db.getWorkouts()).find((w) => w.id === session.workoutId);
 
   const rows = [];
   let prCount = 0;
@@ -27,6 +28,10 @@ export async function summaryScreen(root, id) {
       h('span', { class: `sum-arrow ${cmp}`, role: 'img', 'aria-label': ARROW[cmp][1] }, ARROW[cmp][0]),
       h('div', { class: 'grow' },
         h('b', {}, ex.name),
+        workout && !workout.exercises.some((e) => e.name === ex.name) ? h('button', { class: 'link make-perm', type: 'button', onclick: async (ev) => {
+          await db.addExerciseToWorkout(workout, ex.name);
+          ev.target.replaceWith(h('small', { class: 'muted perm-done' }, `✓ נוסף לסוף ${workout.name}`));
+        } }, '📌 הפוך לתרגיל קבוע באימון') : null,
         h('div', { class: 'muted sum-line' }, `${fmtNum(tw)} ק״ג${prevInfo ? ` (קודם ${fmtNum(topWeight(prevInfo.sets))})` : ''} · נפח ${fmtNum(volume(ex.sets))}${prevInfo ? ` (קודם ${fmtNum(volume(prevInfo.sets))})` : ''}`),
         (kinds.size || pr.volume) ? h('div', { class: 'sum-pr' }, [
           kinds.has('weight') ? '🏆 שיא משקל' : null, kinds.has('reps') ? '🏆 שיא חזרות' : null, pr.volume ? '🏆 שיא נפח' : null].filter(Boolean).join(' · ')) : null)));
