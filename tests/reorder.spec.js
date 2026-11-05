@@ -171,3 +171,21 @@ test('summary: "make permanent" button on a one-time exercise', async ({ page })
   expect(await wNames(page)).toEqual([...A, 'הרמה צידית']);
   expect((await sessionsDB(page))[0].exercises.find((e) => e.name === 'הרמה צידית').sets).toHaveLength(1);
 });
+
+test('session: long-press (cards collapse) does not reorder until the finger moves; dragging up moves the card up', async ({ page }) => {
+  await setup(page);
+  await startWorkout(page, 'A');
+  const h = page.locator('.drag-handle').nth(1);
+  await h.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const b = await h.boundingBox(), x = b.x + b.width / 2, y0 = b.y + b.height / 2;
+  const cdp = await page.context().newCDPSession(page);
+  const send = (type, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  const names = () => page.locator('.ex-name').allTextContents();
+  await send('touchStart', y0);
+  await page.waitForTimeout(600);
+  expect(await names()).toEqual(A.slice(0, 6));
+  for (let i = 1; i <= 15; i++) { await send('touchMove', y0 - i * 8); await page.waitForTimeout(16); }
+  await send('touchEnd', y0 - 120);
+  await page.waitForTimeout(300);
+  expect((await names()).slice(0, 2)).toEqual([A[1], A[0]]);
+});

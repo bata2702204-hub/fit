@@ -11,7 +11,7 @@ export function sortable(container, { handle = '.drag-handle', onStart, onEnd, o
   function place() {
     const { item } = drag;
     item.style.transform = '';
-    const y = drag.y;
+    const y = drag.y + drag.off; // finger position translated by the offset taken when the drag began
     let before = null;
     for (const s of items()) {
       if (s === item) continue;
@@ -35,9 +35,13 @@ export function sortable(container, { handle = '.drag-handle', onStart, onEnd, o
     clearTimeout(pending.timer);
     pending = null;
     const from = items().indexOf(item);
-    onStart?.(container, item);
+    const r0 = item.getBoundingClientRect();
+    const grab = Math.min(Math.max(y - r0.top, 0), r0.height);
+    onStart?.(container, item); // may reflow the list (the session screen collapses its cards)
     const r = item.getBoundingClientRect();
-    drag = { item, from, id, y, grab: Math.min(Math.max(y - r.top, 0), r.height), raf: 0 };
+    // After a reflow the finger can sit over a different slot. Keep the item in its own slot and let it follow
+    // the finger's movement (off), instead of snapping under the finger and reordering before any movement.
+    drag = { item, from, id, y, grab, off: r.top + grab - y, raf: 0 };
     item.classList.add('dragging');
     navigator.vibrate?.(12);
     loop();
