@@ -43,11 +43,8 @@ export const del = (store, id) => tx(store, 'readwrite', (s) => s.delete(id));
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 const SEED_WORKOUTS = {
-  A: ['לחיצת חבל בפולי', 'חזה עליון', 'חזה רגיל', 'פרפר בכבלים', 'פשיטת מרפקים מעל הראש', 'כתף אחורית',
-    'חזה עליון עם דאמבלים', 'חזה רגיל עם דאמבלים', 'פרפר עם דאמבלים', 'יד אחורית עם דאמבל', 'יד אחורית עם משולש',
-    'יד אחורית עם מוט ישר'],
-  B: ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה',
-    'חתירה עם דאמבלים', 'גב יד יד', 'מתח'],
+  A: ['חזה עליון', 'חזה רגיל', 'פרפר בכבלים', 'לחיצת חבל בפולי', 'פשיטת מרפקים מעל הראש', 'כתף אחורית'],
+  B: ['פולי עליון רחב', 'כפיפות מרפקים יד יד', 'פטישים', 'כפיפות מרפקים', 'סקוואט במכונה', 'תאומים', 'פשיטת רגל במכונה'],
 };
 
 const SEED_FIELDS = [
@@ -85,7 +82,6 @@ export async function init() {
   }
   await put('meta', { id: 'seeded', value: true });
   await put('meta', { id: 'migrated_noRearDeltB', value: true });
-  await put('meta', { id: 'migrated_exerciseList_v2', value: true });
 }
 
 // One-time migrations for data created by older versions.
@@ -96,20 +92,6 @@ async function migrate() {
     const b = ws.find((w) => w.id === 'B');
     if (b) await put('workouts', { ...b, exercises: b.exercises.filter((e) => e.name !== 'כתף אחורית') });
     await put('meta', { id: 'migrated_noRearDeltB', value: true });
-  }
-  // Exercise lists for A and B in the order the user asked for (Nov 2026), and rest back to 2 minutes.
-  // Existing exercises keep their id, notes and rep range; exercises the user added themselves stay, at the end.
-  if (!(await get('meta', 'migrated_exerciseList_v2'))) {
-    for (const id of ['A', 'B']) {
-      const w = (await getAll('workouts')).find((x) => x.id === id);
-      if (!w) continue;
-      const byName = new Map(w.exercises.map((e) => [e.name, e]));
-      const listed = SEED_WORKOUTS[id].map((name) => byName.get(name) || { id: uid(), name });
-      const extra = w.exercises.filter((e) => !SEED_WORKOUTS[id].includes(e.name));
-      await put('workouts', { ...w, exercises: [...listed, ...extra] });
-    }
-    await setMeta('restSeconds', 120);
-    await put('meta', { id: 'migrated_exerciseList_v2', value: true });
   }
 }
 
