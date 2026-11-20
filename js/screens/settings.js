@@ -27,6 +27,8 @@ export async function settingsScreen(root) {
           if (!m || +m[1] < 1 || +m[1] > +m[2]) { toast('טווח לא תקין. דוגמה: 8-12'); return; }
           e.minReps = +m[1]; e.maxReps = +m[2]; save();
         } }, `טווח: ${e.minReps ?? 8}–${e.maxReps ?? 12}`)),
+      h('button', { class: 'icon-btn', type: 'button', disabled: i === 0, 'aria-label': `הזז את ${e.name} למעלה`, onclick: () => move(w.exercises, i, -1) && save() }, '↑'),
+      h('button', { class: 'icon-btn', type: 'button', disabled: i === w.exercises.length - 1, 'aria-label': `הזז את ${e.name} למטה`, onclick: () => move(w.exercises, i, 1) && save() }, '↓'),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'שנה שם', onclick: async () => {
         const n = prompt('שם התרגיל:', e.name);
         if (!n || !n.trim() || n.trim() === e.name) return;
